@@ -13,6 +13,7 @@ import java.util.concurrent.Executors;
 public class Server {
 
     public static void main(String[] args) throws IOException {
+
         ExecutorService executor = Executors.newCachedThreadPool();
         if (!AppConfig.FILE_TO_COPY.exists() || !AppConfig.FILE_TO_COPY.isFile()) {
             throw new FileNotFoundException("No such file: " + AppConfig.FILE_TO_COPY);
@@ -24,9 +25,14 @@ public class Server {
             System.out.println("Server is running on port " + AppConfig.SERVER_PORT + " ...");
 
             while (true) {
-                Socket socket = ss.accept();
-                FileSendTask fileSendTask = new FileSendTask(AppConfig.FILE_TO_COPY, socket);
-                executor.submit(fileSendTask);
+                try {
+                    Socket socket = ss.accept();
+                    FileSendTask fileSendTask = new FileSendTask(AppConfig.FILE_TO_COPY, socket);
+                    executor.submit(fileSendTask);
+                } catch (IOException e) {
+                    System.out.println("Server stopped or exception occurred: " + e.getMessage());
+                    break;
+                }
             }
         }
     }

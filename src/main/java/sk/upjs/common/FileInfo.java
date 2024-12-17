@@ -15,9 +15,6 @@ public class FileInfo implements Serializable {
         this.fileName = FileName;
         this.size = size;
     }
-    public String getFileName() {
-        return fileName;
-    }
 
     public long getFileSize() {
         return size;

@@ -1,20 +1,11 @@
-
-        package sk.upjs.client;
-
+package sk.upjs.client;
 import javafx.application.Platform;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.concurrent.Service;
 import javafx.concurrent.Task;
-import javafx.scene.control.Alert;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.ProgressBar;
-import sk.upjs.client.FileInfoReceiver;
-import sk.upjs.client.FileReceiveTask;
 import sk.upjs.common.AppConfig;
 import sk.upjs.common.FileInfo;
-import sk.upjs.common.FileRequest;
-
 import java.io.*;
 import java.net.InetAddress;
 import java.util.ArrayList;
@@ -37,11 +28,10 @@ public class ClientService extends Service<Void> {
 
     public ClientService(int threadCount) {
         this.threadCount = threadCount;
-        cdl= new CountDownLatch(threadCount);
+        cdl = new CountDownLatch(threadCount);
         this.executor = Executors.newFixedThreadPool(threadCount);
         fileInfo = FileInfoReceiver.getLocalhostServerFileInfo();
         if (fileInfo == null) {
-
             return;
         }
 
@@ -58,18 +48,13 @@ public class ClientService extends Service<Void> {
                 long offset = i * blockSize;
                 long length = (i == threadCount - 1) ? (fileSize - offset) : blockSize;
 
-                FileReceiveTask task = new FileReceiveTask(newFile, fileSize, offset, length, InetAddress.getByName("localhost"), AppConfig.SERVER_PORT, this);
+                FileReceiveTask task = new FileReceiveTask(newFile, fileSize, offset, length, InetAddress.getByName(AppConfig.HOST), AppConfig.SERVER_PORT, this);
                 Future<String> future = executor.submit(task);
                 futures.add(future);
                 System.out.println(task);
             }
-
-
             cdl.await();
-
-
-        }  catch (InterruptedException e){
-
+        } catch (InterruptedException e) {
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -77,8 +62,6 @@ public class ClientService extends Service<Void> {
     }
 
     public void processFutures() {
-
-        // TODO if temp
         for (Future<String> future : futures) {
             try {
                 String result = future.get();
@@ -88,25 +71,16 @@ public class ClientService extends Service<Void> {
                 }
             } catch (InterruptedException | ExecutionException e) {
                 e.printStackTrace();
-
             }
-
         }
-        if(progress.get()==fileSize){
-
-            System.out.println("Celý súbor bol poslaný");
-
-
-        }else{
-
-            saveDataToFile("priebeh" + " " + progress.toString());
+        if (progress.get() == fileSize) {
+            System.out.println("File copied successfully");
+        } else {
+            saveDataToFile("Progress" + " " + progress.toString());
         }
         if (!executor.isShutdown()) {
             executor.shutdown();
         }
-
-
-
     }
 
     private void downloadContinue() {
@@ -119,14 +93,14 @@ public class ClientService extends Service<Void> {
             String info = br.readLine();
             FileReceiveTask task;
             while (info != null) {
-                if (info.contains("priebeh")) {
+                if (info.contains("Progress")) {
                     progress.set(Long.parseLong(info.split(" ")[1]));
 
                 } else {
-                    if (!info.contains("vlakna")) {
+                    if (!info.contains("Thread Count")) {
                         String[] splitted = info.split(" ");
                         task = new FileReceiveTask(newFile, fileSize, Long.parseLong(splitted[0]),
-                                Long.parseLong(splitted[1]), InetAddress.getByName("localhost"), AppConfig.SERVER_PORT, this);
+                                Long.parseLong(splitted[1]), InetAddress.getByName(AppConfig.HOST), AppConfig.SERVER_PORT, this);
                         futures.add(executor.submit(task));
                     }
                 }
@@ -134,17 +108,17 @@ public class ClientService extends Service<Void> {
             }
             br.close();
 
-
         } catch (IOException e) {
             e.printStackTrace();
         }
 
     }
+
     private void saveDataToFile(String returnedFuture) {
         if (!returnedFuture.isEmpty()) {
             try (FileWriter fw = new FileWriter(AppConfig.TEMP, true)) {
-                if (AppConfig.TEMP.length() == 0 || !AppConfig.TEMP.isFile()) {
-                    fw.write("vlakna " + threadCount + "\n");
+                if (AppConfig.TEMP.length() == 0) {
+                    fw.write("Thread Count " + threadCount + System.lineSeparator());
                 }
                 fw.write(returnedFuture + " " + "\n");
             } catch (IOException e) {
@@ -152,40 +126,35 @@ public class ClientService extends Service<Void> {
             }
         }
     }
+
     @Override
     protected Task<Void> createTask() {
-
         Task<Void> task = new Task<Void>() {
 
             @Override
             protected Void call() {
                 try {
                     executor = Executors.newFixedThreadPool(threadCount);
-                    if( AppConfig.TEMP.length() == 0){
+                    if (AppConfig.TEMP.length() == 0) {
                         startCopy();
                         cdl.await();
                         progress.set(fileSize);
-
-
                         if (progress.get() == fileSize) {
-
-                            System.out.println("Stahovanie dokoncene ");
+                            System.out.println("Copy completed");
                             AppConfig.TEMP.deleteOnExit();
                         }
-                    }else{
+                    } else {
                         downloadContinue();
                         cdl.await();
                         progress.set(fileSize);
                         executor.shutdown();
-
                         if (progress.get() == fileSize) {
-
-                            System.out.println("Stahovanie dokoncene ");
+                            System.out.println("Copy completed");
                             AppConfig.TEMP.deleteOnExit();
                         }
                     }
-                } catch (InterruptedException e ) {
-
+                } catch (InterruptedException e) {
+                    System.out.println("Copying interrupted");
                 }
                 return null;
             }
@@ -195,7 +164,14 @@ public class ClientService extends Service<Void> {
                 System.out.println(futures);
                 if (!executor.isShutdown()) {
                     executor.shutdownNow();
-                    System.out.println("Stahovanie je prerusene");
+                    System.out.println("Copying cancelled");
+                    if (AppConfig.TEMP.exists()) {
+                        try {
+                            FileWriter fw = new FileWriter(AppConfig.TEMP, false);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
                     processFutures();
 
                 }
@@ -210,32 +186,21 @@ public class ClientService extends Service<Void> {
         };
         return task;
     }
-    public void updateProgress ( long data) {
 
-            long newProgress = progress.getAndAdd(data);
-            if (newProgress > fileSize) {
-                progress.set(fileSize); // Zabráň prekročeniu veľkosti
-            }
+    public void updateProgress(long data) {
 
-            double currentProgress = Math.min(1.0, (double) progress.get() / fileSize);
-            Platform.runLater(() -> progressProperty.set(currentProgress));
-
-            System.out.printf("Progress: %d / %d (%.2f%%)%n", progress.get(), fileSize, currentProgress * 100);
+        long newProgress = progress.getAndAdd(data);
+        if (newProgress > fileSize) {
+            progress.set(fileSize);
+        }
+        double currentProgress = Math.min(1.0, (double) progress.get() / fileSize);
+        Platform.runLater(() -> progressProperty.set(currentProgress));
+//        System.out.printf("Progress: %d / %d (%.2f%%)%n", progress.get(), fileSize, currentProgress * 100);
 
     }
 
-        public DoubleProperty bindProgress() {
+    public DoubleProperty bindProgress() {
         return progressProperty;
     }
 
-
-
-    private String getExtension(String fileName) {
-        int dotIndex = fileName.lastIndexOf('.');
-        return (dotIndex != -1 && dotIndex != 0) ? fileName.substring(dotIndex) : "";
-    }
-    public void addData(long data) {
-        progress.getAndAdd(data);
-
-    }
 }

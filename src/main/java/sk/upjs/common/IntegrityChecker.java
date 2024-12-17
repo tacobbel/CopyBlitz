@@ -7,7 +7,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 public class IntegrityChecker {
-    // Vytvorenie hashovania súboru
+
     public static String calculateHash(File file, String algorithm) throws IOException, NoSuchAlgorithmException {
         MessageDigest digest = MessageDigest.getInstance(algorithm);
         try (FileInputStream fis = new FileInputStream(file)) {
@@ -19,7 +19,7 @@ public class IntegrityChecker {
             }
         }
         byte[] hashBytes = digest.digest();
-        // Prevod hash na hexadecimálny reťazec
+
         StringBuilder hexString = new StringBuilder();
         for (byte hashByte : hashBytes) {
             String hex = Integer.toHexString(0xff & hashByte);
@@ -29,7 +29,6 @@ public class IntegrityChecker {
         return hexString.toString();
     }
 
-    // Porovnanie dvoch súborov na základe hash
     public static boolean compareFiles(File file1, File file2, String algorithm) {
         try {
             String hash1 = calculateHash(file1, algorithm);

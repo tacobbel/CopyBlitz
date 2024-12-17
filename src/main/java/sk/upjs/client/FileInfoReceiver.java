@@ -39,7 +39,7 @@ public class FileInfoReceiver {
             oos.close();
             ois.close();
         } catch (ClassNotFoundException e) {
-            System.err.println("wrong fileinfo format received");
+            System.err.println("Wrong fileinfo format received");
         } catch (IOException e) {
             System.err.println("Server connection problem. Is server running?");
         }

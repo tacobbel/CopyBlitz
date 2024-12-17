@@ -36,7 +36,7 @@ public class FileReceiveTask implements Callable<String>{
              ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
              ObjectInputStream ois = new ObjectInputStream(socket.getInputStream())) {
 
-            // Pošleme požiadavku na segment
+            // Send file request to server
             oos.writeUTF("file");
             oos.flush();
             FileRequest fileRequest = new FileRequest(offset, length);
@@ -45,7 +45,7 @@ public class FileReceiveTask implements Callable<String>{
 
             long fileOffset = offset;
             while (dataRead < length) {
-                // Kontrola, či je vlákno prerušené
+                // Check if task was interrupted
                 if (Thread.currentThread().isInterrupted()) {
                     System.out.println("Task interrupted: Offset " + offset);
                     return incompleteData();
@@ -87,7 +87,7 @@ public class FileReceiveTask implements Callable<String>{
         }
     }
 
-    // Metóda na získanie nedokončených údajov
+    // Get the offset and length of incomplete data
     private String incompleteData() {
         if (dataRead < length) {
             return (offset + dataRead) + " " + (length - dataRead);
