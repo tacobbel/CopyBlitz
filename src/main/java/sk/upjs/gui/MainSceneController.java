@@ -1,6 +1,7 @@
 package sk.upjs.gui;
 
 import javafx.application.Platform;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -43,7 +44,7 @@ public class MainSceneController {
     void initialize() throws IOException {
         stopButton.setDisable(true);
         checkIntegrityButton.setDisable(true);
-        checkFileExistence();
+
         textFieldTcp.textProperty().addListener((observable, oldValue, newValue) -> {
             if (!newValue.matches("\\d*")) {
                 textFieldTcp.setText(newValue.replaceAll("[^\\d]", ""));// Odstráni všetky nečíselné znaky
@@ -59,6 +60,8 @@ public class MainSceneController {
                 textFieldTcp.setDisable(true);
             }
             br.close();
+        } else {
+            checkFileExistence();
         }
 
         progressBar.progressProperty().addListener((observable, oldValue, newValue) -> {
@@ -99,25 +102,52 @@ public class MainSceneController {
     }
 
     @FXML
-    void checkIntegrityButtonAction(ActionEvent event) {
 
-        Platform.runLater(() -> {
-            if (IntegrityChecker.compareFiles(AppConfig.FILE_TO_COPY, new File(AppConfig.COPY_TO + File.separator + AppConfig.FILE_TO_COPY.getName()), "SHA-256")) {
-                System.out.println("File copied successfully");
-                Alert alert = new Alert(Alert.AlertType.INFORMATION);
-                alert.setTitle("Completed");
-                alert.setHeaderText(null);
-                alert.setContentText("File successfully copied!");
-                alert.showAndWait();
-            } else {
-                System.out.println("File corrupted");
-                Alert alert = new Alert(Alert.AlertType.ERROR);
-                alert.setTitle("Error");
-                alert.setHeaderText(null);
-                alert.setContentText("File corrupted during transfer!");
-                alert.showAndWait();
-            }
-        });
+        void checkIntegrityButtonAction(ActionEvent event) {
+            ProgressIndicator progressIndicator = new ProgressIndicator();
+            Alert progressAlert = new Alert(Alert.AlertType.INFORMATION);
+            progressAlert.setTitle("Checking Integrity");
+            progressAlert.setHeaderText("Please wait...");
+            progressAlert.setGraphic(progressIndicator);
+            progressAlert.getDialogPane().setDisable(true);
+            progressAlert.show();
+
+            // new task for integrity check
+            Task<Boolean> integrityCheckTask = new Task<>() {
+                @Override
+                protected Boolean call() {
+                    return IntegrityChecker.compareFiles(
+                            AppConfig.FILE_TO_COPY,
+                            new File(AppConfig.COPY_TO + File.separator + AppConfig.FILE_TO_COPY.getName())
+                    );
+                }
+            };
+
+            // when task is done
+            integrityCheckTask.setOnSucceeded(workerStateEvent -> {
+                progressAlert.close();
+                boolean result = integrityCheckTask.getValue();
+
+                Alert resultAlert = new Alert(result ? Alert.AlertType.INFORMATION : Alert.AlertType.ERROR);
+                resultAlert.setTitle(result ? "Completed" : "Error");
+                resultAlert.setHeaderText(null);
+                resultAlert.setContentText(result ? "File successfully copied!" : "File corrupted during transfer!");
+                resultAlert.showAndWait();
+            });
+
+            // when task fails
+            integrityCheckTask.setOnFailed(workerStateEvent -> {
+                progressAlert.close();
+                Alert errorAlert = new Alert(Alert.AlertType.ERROR);
+                errorAlert.setTitle("Error");
+                errorAlert.setHeaderText("Integrity check failed");
+                errorAlert.setContentText("An error occurred while comparing files.");
+                errorAlert.showAndWait();
+            });
+
+            // Spustenie Task v novom vlákne
+            new Thread(integrityCheckTask).start();
+
     }
 
     @FXML

@@ -53,8 +53,8 @@ public class ClientService extends Service<Void> {
                 futures.add(future);
                 System.out.println(task);
             }
-            cdl.await();
-        } catch (InterruptedException e) {
+//            cdl.await();
+//        } catch (InterruptedException e) {
 
         } catch (Exception e) {
             e.printStackTrace();
