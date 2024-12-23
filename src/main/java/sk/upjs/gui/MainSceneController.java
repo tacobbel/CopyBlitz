@@ -164,7 +164,7 @@ public class MainSceneController {
             System.exit(0);
         } else {
             clientService.cancel();
-            System.out.println("Aplikácia bola ukončená");
+            System.out.println("App closed");
             System.exit(0);
         }
     }
@@ -186,56 +186,12 @@ public class MainSceneController {
             alert.showAndWait().ifPresent(response -> {
                 if (response == cancelButton) {
                     System.out.println("Shutting down Application...");
-                    System.exit(0); // Ukončí aplikáciu
+                    System.exit(0);
                 } else if (response == overwriteButton) {
                     System.out.println("Overwriting existing file...");
-//                    newFile.delete(); // Odstráni existujúci súbor
                 }
             });
         }
     }
-
-//    @FXML
-//    void selectFileButtonAction(ActionEvent event) {
-//        FileChooser fileChooser = new FileChooser();
-//        fileChooser.setTitle("Select File to Copy");
-//
-//        // Nastavenie počiatočného priečinka, voliteľné
-//        fileChooser.setInitialDirectory(new File(System.getProperty("user.home")));
-//
-//        // Filtrovanie súborov, voliteľné
-//        fileChooser.getExtensionFilters().addAll(
-//                new FileChooser.ExtensionFilter("All Files", "*.*"),
-//                new FileChooser.ExtensionFilter("Text Files", "*.txt"),
-//                new FileChooser.ExtensionFilter("Images", "*.jpg", "*.png")
-//        );
-//
-//        Stage stage = (Stage) selectFileButton.getScene().getWindow();
-//        File selectedFile = fileChooser.showOpenDialog(stage);
-//
-//        if (selectedFile != null) {
-//            // Nastavíme FILE_TO_COPY v AppConfig na vybraný súbor
-//
-//            System.out.println("Selected file: " + selectedFile.getAbsolutePath());
-//
-//            // Aktualizujeme label alebo textField, ak chcete zobraziť vybraný súbor
-//            filePathTextField.setText(selectedFile.getName());
-//            startServer();
-//        } else {
-//            System.out.println("File selection cancelled.");
-//        }
-//
-//    }
-
-//    private void startServer() {
-//        ExecutorService serverExecutor = Executors.newSingleThreadExecutor();
-//        serverExecutor.submit(() -> {
-//            try {
-//                new Server().start();
-//            } catch (IOException e) {
-//                System.err.println("Error while starting server: " + e.getMessage());
-//            }
-//        });
-//    }
 
 }
